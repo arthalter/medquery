@@ -2,7 +2,8 @@ FROM node:22-bookworm-slim AS frontend-builder
 
 WORKDIR /build
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --include=optional \
+    && npm install --no-save @cloudflare/workerd-linux-arm64@1.20260515.1
 
 COPY app ./app
 COPY components ./components
