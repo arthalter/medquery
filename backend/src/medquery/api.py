@@ -37,6 +37,37 @@ def create_api_router(
         state = sessions.create()
         return {"session_id": state.session_id}
 
+    @router.get("/sessions/{session_id}")
+    async def get_session(session_id: str) -> dict[str, object]:
+        state = sessions.get(session_id)
+        if state is None:
+            raise HTTPException(status_code=404, detail="会话不存在")
+        confirmed = (
+            registry.get(state.confirmed_drug_id)
+            if state.confirmed_drug_id
+            else None
+        )
+        pending_candidates = [
+            candidate.to_client_dict()
+            for candidate_id in state.pending_drug_ids
+            if (candidate := registry.get(candidate_id)) is not None
+        ]
+        return {
+            "session_id": state.session_id,
+            "confirmed_drug": (
+                confirmed.to_client_dict() if confirmed else None
+            ),
+            "pending_candidates": pending_candidates,
+            "turns": [
+                {
+                    "question": turn.question,
+                    "answer": turn.answer,
+                    "evidence": turn.evidence,
+                }
+                for turn in state.turns
+            ],
+        }
+
     @router.post("/sessions/{session_id}/drug-confirmation")
     async def confirm_drug(
         session_id: str,
@@ -98,12 +129,39 @@ def create_api_router(
             else chat_request.message
         )
         if not chat_request.resume:
-            state.add_message("user", current_question)
+            state.begin_question(current_question)
 
         async def events() -> AsyncIterator[str]:
             yield _sse("session", {"session_id": state.session_id})
             if state.confirmed_drug_id:
                 drug = registry.get(state.confirmed_drug_id)
+                if not chat_request.resume:
+                    detected = await recognizer.recognize(
+                        state,
+                        current_question,
+                        settings.session_history_rounds,
+                    )
+                    switch_candidates = [
+                        candidate
+                        for candidate in detected
+                        if candidate.drug_id != state.confirmed_drug_id
+                    ]
+                    if switch_candidates:
+                        state.clear_confirmed_drug()
+                        state.set_pending(
+                            [candidate.drug_id for candidate in switch_candidates]
+                        )
+                        state.add_message("assistant", "请确认要切换的药品。")
+                        yield _sse(
+                            "drug_confirmation_required",
+                            {
+                                "candidates": [
+                                    candidate.to_client_dict()
+                                    for candidate in switch_candidates
+                                ]
+                            },
+                        )
+                        return
                 yield _sse(
                     "drug_confirmed",
                     {"drug": drug.to_client_dict() if drug else None},
@@ -116,7 +174,10 @@ def create_api_router(
                     drug.drug_name,
                     request.app.state.milvus,
                 )
-                state.complete_answer(outcome.answer)
+                state.complete_answer(
+                    outcome.answer,
+                    list(outcome.evidence),
+                )
                 for delta in _answer_chunks(outcome.answer):
                     yield _sse("answer_delta", {"delta": delta})
                 yield _sse(
@@ -139,7 +200,6 @@ def create_api_router(
                 )
                 return
 
-            state.set_pending_question(current_question)
             state.set_pending([drug.drug_id for drug in candidates])
             state.add_message("assistant", "请确认要查询的药品。")
             yield _sse(
