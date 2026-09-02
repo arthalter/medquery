@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from medquery.agent import DrugQuestionAgent
 from medquery.api import create_api_router
 from medquery.config import Settings, get_settings
 from medquery.drugs import DrugRegistry
@@ -17,6 +18,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         runtime_settings.data_dir / "processed" / "drugs.json"
     )
     recognizer = DrugRecognizer(GrokChatClient(runtime_settings), registry)
+    question_agent = DrugQuestionAgent(runtime_settings)
     app = FastAPI(
         title=runtime_settings.app_name,
         version="0.1.0",
@@ -26,7 +28,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = runtime_settings
     app.state.sessions = sessions
     app.include_router(
-        create_api_router(runtime_settings, sessions, registry, recognizer)
+        create_api_router(
+            runtime_settings,
+            sessions,
+            registry,
+            recognizer,
+            question_agent,
+        )
     )
     app.mount(
         "/",

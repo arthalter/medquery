@@ -1,10 +1,11 @@
 import json
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from medquery.agent import DrugQuestionAgent
 from medquery.config import Settings
 from medquery.drugs import DrugRegistry
 from medquery.recognition import DrugRecognizer
@@ -14,6 +15,7 @@ from medquery.session import InMemorySessionStore
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1)
     session_id: str | None = None
+    resume: bool = False
 
 
 class DrugConfirmationRequest(BaseModel):
@@ -26,6 +28,7 @@ def create_api_router(
     sessions: InMemorySessionStore,
     registry: DrugRegistry,
     recognizer: DrugRecognizer,
+    question_agent: DrugQuestionAgent,
 ) -> APIRouter:
     router = APIRouter(prefix="/api")
 
@@ -54,6 +57,7 @@ def create_api_router(
             return {
                 "status": "confirmed",
                 "drug": drug.to_client_dict(),
+                "question": state.pending_question,
             }
 
         state.reject_drug(drug.drug_id)
@@ -74,13 +78,27 @@ def create_api_router(
         }
 
     @router.post("/chat/stream")
-    async def chat_stream(request: ChatRequest) -> StreamingResponse:
-        state = sessions.get(request.session_id) if request.session_id else None
-        if request.session_id and state is None:
+    async def chat_stream(
+        chat_request: ChatRequest,
+        request: Request,
+    ) -> StreamingResponse:
+        state = (
+            sessions.get(chat_request.session_id)
+            if chat_request.session_id
+            else None
+        )
+        if chat_request.session_id and state is None:
             raise HTTPException(status_code=404, detail="会话不存在")
         if state is None:
             state = sessions.create()
-        state.add_message("user", request.message)
+
+        current_question = (
+            state.pending_question
+            if chat_request.resume and state.pending_question
+            else chat_request.message
+        )
+        if not chat_request.resume:
+            state.add_message("user", current_question)
 
         async def events() -> AsyncIterator[str]:
             yield _sse("session", {"session_id": state.session_id})
@@ -90,11 +108,27 @@ def create_api_router(
                     "drug_confirmed",
                     {"drug": drug.to_client_dict() if drug else None},
                 )
+                if drug is None:
+                    raise RuntimeError("确认药品不在药品注册表中")
+                outcome = await question_agent.answer(
+                    state,
+                    current_question,
+                    drug.drug_name,
+                    request.app.state.milvus,
+                )
+                state.complete_answer(outcome.answer)
+                for delta in _answer_chunks(outcome.answer):
+                    yield _sse("answer_delta", {"delta": delta})
+                yield _sse(
+                    "evidence",
+                    {"evidence": list(outcome.evidence)},
+                )
+                yield _sse("done", {})
                 return
 
             candidates = await recognizer.recognize(
                 state,
-                request.message,
+                current_question,
                 settings.session_history_rounds,
             )
             if not candidates:
@@ -105,6 +139,7 @@ def create_api_router(
                 )
                 return
 
+            state.set_pending_question(current_question)
             state.set_pending([drug.drug_id for drug in candidates])
             state.add_message("assistant", "请确认要查询的药品。")
             yield _sse(
@@ -127,3 +162,10 @@ def create_api_router(
 def _sse(event: str, data: dict[str, object]) -> str:
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     return f"event: {event}\ndata: {payload}\n\n"
+
+
+def _answer_chunks(answer: str, chunk_size: int = 24) -> list[str]:
+    return [
+        answer[index : index + chunk_size]
+        for index in range(0, len(answer), chunk_size)
+    ]
