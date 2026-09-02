@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,7 +27,10 @@ class Settings(BaseSettings):
     chunk_char_limit: int = 400
     chunk_overlap_last_sentence: bool = True
 
-    milvus_uri: Path = Path("/data/milvus/medquery.db")
+    milvus_uri: Path = Field(
+        default=Path("/data/milvus/medquery.db"),
+        validation_alias="MEDQUERY_MILVUS_URI",
+    )
     milvus_collection: str = "drug_instructions"
     dense_top_k: int = 10
 
