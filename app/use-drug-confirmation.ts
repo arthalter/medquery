@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export type DrugCandidate = {
   drug_id: string;
@@ -20,6 +20,19 @@ type StreamPayload = {
   drug?: DrugCandidate | null;
 };
 
+type SessionSnapshot = {
+  session_id: string;
+  confirmed_drug?: DrugCandidate | null;
+  pending_candidates: DrugCandidate[];
+  turns: Array<{
+    question: string;
+    answer: string;
+    evidence: string[];
+  }>;
+};
+
+const SESSION_KEY = 'medquery.session_id';
+
 export function useDrugConfirmation() {
   const [sessionId, setSessionId] = useState<string>();
   const [candidates, setCandidates] = useState<DrugCandidate[]>([]);
@@ -29,6 +42,27 @@ export function useDrugConfirmation() {
   const [pendingQuestion, setPendingQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [evidence, setEvidence] = useState<string[]>([]);
+
+  useEffect(() => {
+    const storedSessionId = window.localStorage.getItem(SESSION_KEY);
+    if (!storedSessionId) return;
+
+    fetch(`/api/sessions/${storedSessionId}`).then(async (response) => {
+      if (!response.ok) {
+        window.localStorage.removeItem(SESSION_KEY);
+        return;
+      }
+      const snapshot = (await response.json()) as SessionSnapshot;
+      setSessionId(snapshot.session_id);
+      setConfirmedDrug(snapshot.confirmed_drug ?? undefined);
+      setCandidates(snapshot.pending_candidates ?? []);
+      const latest = snapshot.turns.at(-1);
+      if (latest) {
+        setAnswer(latest.answer);
+        setEvidence(latest.evidence);
+      }
+    });
+  }, []);
 
   async function submitQuestion(message: string, resume = false) {
     if (!message || isSending) return;
@@ -51,6 +85,7 @@ export function useDrugConfirmation() {
   function handleStreamEvent(event: string, payload: StreamPayload) {
     if (event === 'session' && payload.session_id) {
       setSessionId(payload.session_id);
+      window.localStorage.setItem(SESSION_KEY, payload.session_id);
     }
     if (event === 'drug_confirmation_required') {
       setCandidates(payload.candidates ?? []);
