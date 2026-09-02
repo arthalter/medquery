@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
-import json
 
-from langchain.agents import create_agent
-from langchain.messages import AIMessage, ToolMessage
-from langchain.tools import tool
-from langchain_openai import ChatOpenAI
 from pymilvus import MilvusClient
 
 from medquery.config import Settings
 from medquery.grok import GrokChatClient
 from medquery.retrieval.service import InstructionRetrievalService
+from medquery.retrieval.tool import DrugInstructionSearchTool
 from medquery.rewrite import QuestionRewriter
 from medquery.session import SessionState
+
+
+AGENT_PROMPT = """你是药品说明书问答 Agent，只能处理已确认药品。
+每一轮必须在两个动作中自主选择一个：
+1. 需要继续查说明书时，返回 {"action":"search","atomic_question":"..."}。
+2. 已经可以回答时，返回 {"action":"final","answer":"..."}。
+一次只选择一个动作。检索结果会在下一轮作为 steps 返回给你。
+最终答案使用简洁中文，只依据 steps 中的证据；页面会单独展示证据正文，不要生成证据卡。
+只输出 JSON，不要输出额外文字。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,19 +28,12 @@ class AgentOutcome:
 
 
 class DrugQuestionAgent:
+    """使用普通 JSON 对话驱动单工具串行 Agent 循环。"""
+
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._rewriter = QuestionRewriter(GrokChatClient(settings))
-        self._model = ChatOpenAI(
-            model=settings.grok_model,
-            base_url=settings.grok_base_url,
-            api_key=settings.grok_api_key.get_secret_value(),
-            use_responses_api=False,
-            temperature=0,
-            timeout=None,
-            max_retries=0,
-            model_kwargs={"parallel_tool_calls": False},
-        )
+        self._client = GrokChatClient(settings)
+        self._rewriter = QuestionRewriter(self._client)
 
     async def answer(
         self,
@@ -52,74 +49,45 @@ class DrugQuestionAgent:
             self._settings.session_history_rounds,
         )
         retrieval = InstructionRetrievalService(self._settings, milvus)
-
-        @tool("search_drug_instructions", response_format="content_and_artifact")
-        def search_drug_instructions(
-            atomic_question: str,
-        ) -> tuple[str, dict[str, list[str]]]:
-            """从已确认药品的说明书中检索与一个原子问题相关的原文。"""
-
-            hits = retrieval.search(confirmed_drug_name, atomic_question)
-            evidence = [item.text for item in hits]
-            return (
-                json.dumps({"evidence": evidence}, ensure_ascii=False),
-                {"evidence": evidence},
-            )
-
-        atomic_questions = list(rewrite.atomic_questions)
-        user_payload = {
-            "confirmed_drug_name": confirmed_drug_name,
-            "original_question": current_question,
-            "rewritten_atomic_questions": atomic_questions,
-        }
-        agent = create_agent(
-            model=self._model,
-            tools=[search_drug_instructions],
-            system_prompt=(
-                "你是药品说明书问答助手。只使用已确认药品。"
-                "你可以自主决定是否以及调用多少次唯一的说明书检索工具，"
-                "所有工具调用必须串行。完成检索后生成一次简洁的中文答案。"
-                "页面会单独展示工具证据，因此答案中不要编造证据卡。"
-            ),
-        )
-        result = await agent.ainvoke(
-            {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": json.dumps(user_payload, ensure_ascii=False),
-                    }
-                ]
-            }
-        )
-        messages = result["messages"]
-        final_message = next(
-            message
-            for message in reversed(messages)
-            if isinstance(message, AIMessage) and not message.tool_calls
-        )
+        tool = DrugInstructionSearchTool(retrieval, confirmed_drug_name)
         evidence: list[str] = []
-        for message in messages:
-            if isinstance(message, ToolMessage) and isinstance(
-                message.artifact, dict
-            ):
-                values = message.artifact.get("evidence", [])
-                if isinstance(values, list):
-                    evidence.extend(str(item) for item in values)
-        return AgentOutcome(
-            answer=_message_text(final_message),
-            evidence=tuple(evidence),
-        )
+        steps: list[dict[str, object]] = []
 
+        while True:
+            decision = await self._client.complete_json(
+                AGENT_PROMPT,
+                {
+                    "confirmed_drug_name": confirmed_drug_name,
+                    "original_question": current_question,
+                    "rewritten_atomic_questions": list(
+                        rewrite.atomic_questions
+                    ),
+                    "steps": steps,
+                },
+            )
+            action = str(decision.get("action", ""))
+            if action == "search":
+                atomic_question = str(
+                    decision.get("atomic_question", "")
+                ).strip()
+                if not atomic_question:
+                    raise RuntimeError("Agent 的 search 动作缺少原子问题")
+                hits = tool.invoke(atomic_question)
+                texts = [str(item["text"]) for item in hits]
+                evidence.extend(texts)
+                steps.append(
+                    {
+                        "action": "search",
+                        "atomic_question": atomic_question,
+                        "evidence": texts,
+                    }
+                )
+                continue
 
-def _message_text(message: Any) -> str:
-    content = getattr(message, "content", "")
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return "".join(
-            str(item.get("text", ""))
-            for item in content
-            if isinstance(item, dict)
-        )
-    return str(content)
+            if action == "final":
+                answer = str(decision.get("answer", "")).strip()
+                if not answer:
+                    raise RuntimeError("Agent 的 final 动作缺少答案")
+                return AgentOutcome(answer=answer, evidence=tuple(evidence))
+
+            raise RuntimeError(f"Agent 返回了未知动作：{action}")

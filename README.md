@@ -41,4 +41,4 @@ docker compose up
 
 打开 `http://localhost:8000`。页面只呈现问题、药品确认、流式答案和证据正文，不展示分数、章节、来源或内部 Agent 过程。
 
-后端由 FastAPI、LangChain `create_agent` 和 Milvus Lite 组成。药名识别与问题改写分别调用 Grok；Agent 自主串行调用唯一说明书检索 Tool，并将实际 Tool 证据通过 SSE 交给前端。
+后端由 FastAPI、Grok JSON Action Agent 和 Milvus Lite 组成。药名识别与问题改写分别调用 Grok；Agent 每轮自主选择继续调用唯一说明书检索 Tool 或生成最终答案，并将实际 Tool 证据通过 SSE 交给前端。
