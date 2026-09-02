@@ -5,6 +5,11 @@ import { ArrowUp, Pill, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  ConfirmedDrugBadge,
+  DrugCandidatePanel,
+} from '@/app/drug-confirmation';
+import { useDrugConfirmation } from '@/app/use-drug-confirmation';
 
 const sampleQuestions = [
   '布洛芬缓释胶囊一天吃几次？',
@@ -13,21 +18,13 @@ const sampleQuestions = [
   '华法林与其他药物同服要注意什么？',
 ];
 
-const evidence = [
-  '口服，成人及12岁以上儿童一日2次，早、晚各1次；一次0.3～0.6g，或遵医嘱。',
-  '本品必须整粒吞服，不得打开、压碎或溶解后服用。',
-  '用于止痛不得超过5天，用于解热不得超过3天；症状不缓解时请咨询医师或药师。',
-];
-
 export default function Home() {
   const [question, setQuestion] = useState('');
-  const [submittedQuestion, setSubmittedQuestion] = useState('');
+  const drugConfirmation = useDrugConfirmation();
 
   function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextQuestion = question.trim();
-    if (!nextQuestion) return;
-    setSubmittedQuestion(nextQuestion);
+    drugConfirmation.submitQuestion(question.trim());
   }
 
   return (
@@ -70,6 +67,8 @@ export default function Home() {
           <p>输入药品名称和你的问题，快速查找说明书中的相关信息。</p>
         </div>
 
+        <ConfirmedDrugBadge drug={drugConfirmation.confirmedDrug} />
+
         <form className="question-panel" onSubmit={submitQuestion}>
           <Textarea
             aria-label="输入药品说明书问题"
@@ -86,9 +85,13 @@ export default function Home() {
               size="icon-lg"
               aria-label="发送问题"
               className="send-button"
-              disabled={!question.trim()}
+              disabled={!question.trim() || drugConfirmation.isSending}
             >
-              <ArrowUp />
+              <ArrowUp
+                className={
+                  drugConfirmation.isSending ? 'send-icon-active' : ''
+                }
+              />
             </Button>
           </div>
         </form>
@@ -106,24 +109,11 @@ export default function Home() {
           ))}
         </div>
 
-        {submittedQuestion ? (
-          <section className="result-preview" aria-live="polite">
-            <p className="result-question">{submittedQuestion}</p>
-            <div className="answer-panel">
-              <p>
-                说明书信息显示，成人及 12 岁以上儿童通常每日服用 2 次，早晚各一次。服用时应整粒吞服，具体剂量请以所持药品说明书为准。
-              </p>
-            </div>
-            <div className="evidence-grid">
-              {evidence.map((item, index) => (
-                <article className="evidence-card" key={item}>
-                  <span className="evidence-index">0{index + 1}</span>
-                  <p>{item}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <DrugCandidatePanel
+          candidates={drugConfirmation.candidates}
+          clarification={drugConfirmation.clarification}
+          onDecision={drugConfirmation.decideCandidate}
+        />
       </section>
     </main>
   );
