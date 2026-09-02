@@ -1,0 +1,374 @@
+{
+  "version": 1,
+  "minimum_required": 20,
+  "description": "智药问点 Demo 中文说明书候选来源。详情页必须通过采集脚本质量门槛后才能进入本地语料。",
+  "source_policy": [
+    "39药品通",
+    "家庭医生在线",
+    "药源网"
+  ],
+  "drugs": [
+    {
+      "drug_id": "ibuprofen-sustained-release-capsules",
+      "expected_drug_name": "布洛芬缓释胶囊",
+      "aliases": ["布洛芬", "彤医"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/712033/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/1000009724/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "paracetamol-tablets",
+      "expected_drug_name": "对乙酰氨基酚片",
+      "aliases": ["对乙酰氨基酚", "扑热息痛片"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/750714/manual/",
+          "priority": 1
+        },
+        {
+          "site": "家庭医生在线",
+          "url": "https://ypk.familydoctor.com.cn/100047/instructions/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "amoxicillin-capsules",
+      "expected_drug_name": "阿莫西林胶囊",
+      "aliases": ["阿莫西林", "抗严"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/743027/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "metformin-hydrochloride-tablets",
+      "expected_drug_name": "盐酸二甲双胍片",
+      "aliases": ["二甲双胍", "盐酸二甲双胍"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/1000000700/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/507701/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "aspirin-enteric-coated-tablets",
+      "expected_drug_name": "阿司匹林肠溶片",
+      "aliases": ["阿司匹林"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/1000009865/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "loratadine-tablets",
+      "expected_drug_name": "氯雷他定片",
+      "aliases": ["氯雷他定", "百为坦"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/589087/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/705110/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "montmorillonite-powder",
+      "expected_drug_name": "蒙脱石散",
+      "aliases": ["蒙脱石"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/762594/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/508373/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "omeprazole-enteric-capsules",
+      "expected_drug_name": "奥美拉唑肠溶胶囊",
+      "aliases": ["奥美拉唑"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/882026/manual/",
+          "priority": 1
+        },
+        {
+          "site": "家庭医生在线",
+          "url": "https://ypk.familydoctor.com.cn/109738/instructions/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "irbesartan-tablets",
+      "expected_drug_name": "厄贝沙坦片",
+      "aliases": ["厄贝沙坦", "苏适"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/585744/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "valsartan-capsules",
+      "expected_drug_name": "缬沙坦胶囊",
+      "aliases": ["缬沙坦", "怡方"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/883267/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "nifedipine-sustained-release-tablets",
+      "expected_drug_name": "硝苯地平缓释片",
+      "aliases": ["硝苯地平"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/1000006755/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/508386/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "amlodipine-besylate-tablets",
+      "expected_drug_name": "苯磺酸氨氯地平片",
+      "aliases": ["氨氯地平", "安内真"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/503804/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/499272/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "atorvastatin-calcium-tablets",
+      "expected_drug_name": "阿托伐他汀钙片",
+      "aliases": ["阿托伐他汀", "阿托伐他汀钙"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/697762/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "cetirizine-hydrochloride-tablets",
+      "expected_drug_name": "盐酸西替利嗪片",
+      "aliases": ["西替利嗪", "盐酸西替利嗪"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/1000005511/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/584858/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "azithromycin-tablets",
+      "expected_drug_name": "阿奇霉素片",
+      "aliases": ["阿奇霉素"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/884039/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "diclofenac-sodium-sustained-release-tablets",
+      "expected_drug_name": "双氯芬酸钠缓释片",
+      "aliases": ["双氯芬酸钠", "迪根"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/722697/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "famotidine-tablets",
+      "expected_drug_name": "法莫替丁片",
+      "aliases": ["法莫替丁"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/731628/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "domperidone-tablets",
+      "expected_drug_name": "多潘立酮片",
+      "aliases": ["多潘立酮", "宝泰理通"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/560898/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "acarbose-tablets",
+      "expected_drug_name": "阿卡波糖片",
+      "aliases": ["阿卡波糖", "卡博平"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/498326/manual/",
+          "priority": 1
+        },
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/498311/manual/",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "drug_id": "glimepiride-tablets",
+      "expected_drug_name": "格列美脲片",
+      "aliases": ["格列美脲", "圣平"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/586176/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "levothyroxine-sodium-tablets",
+      "expected_drug_name": "左甲状腺素钠片",
+      "aliases": ["左甲状腺素钠", "雷替斯"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/579849/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "warfarin-sodium-tablets",
+      "expected_drug_name": "华法林钠片",
+      "aliases": ["华法林", "华法林钠"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/500684/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "salbutamol-aerosol",
+      "expected_drug_name": "沙丁胺醇气雾剂",
+      "aliases": ["沙丁胺醇"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/700282/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "acetylcysteine-granules",
+      "expected_drug_name": "乙酰半胱氨酸颗粒",
+      "aliases": ["乙酰半胱氨酸", "富露施"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/630411/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "potassium-chloride-sustained-release-tablets",
+      "expected_drug_name": "氯化钾缓释片",
+      "aliases": ["氯化钾"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/755882/manual/",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "drug_id": "levofloxacin-tablets",
+      "expected_drug_name": "左氧氟沙星片",
+      "aliases": ["左氧氟沙星", "可乐必妥"],
+      "sources": [
+        {
+          "site": "39药品通",
+          "url": "https://ypk.39.net/620655/manual/",
+          "priority": 1
+        }
+      ]
+    }
+  ]
+}
