@@ -1,0 +1,31 @@
+# 本地配置与密钥
+.env
+.env.*
+!.env.example
+
+# 本地药品语料与向量库
+data/raw/
+data/processed/
+data/index/
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Node / 构建产物
+node_modules/
+.next/
+.vinext/
+dist/
+out/
+.wrangler/
+
+# 本地工具状态
+.DS_Store
+*.log
