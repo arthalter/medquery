@@ -5,6 +5,7 @@ import { ArrowUp, Pill, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { AnswerResult } from '@/app/answer-result';
 import {
   ConfirmedDrugBadge,
   DrugCandidatePanel,
@@ -113,6 +114,10 @@ export default function Home() {
           candidates={drugConfirmation.candidates}
           clarification={drugConfirmation.clarification}
           onDecision={drugConfirmation.decideCandidate}
+        />
+        <AnswerResult
+          answer={drugConfirmation.answer}
+          evidence={drugConfirmation.evidence}
         />
       </section>
     </main>

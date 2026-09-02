@@ -17,12 +17,28 @@ class SessionState:
     confirmed_drug_name: str | None = None
     pending_drug_ids: list[str] = field(default_factory=list)
     rejected_drug_ids: list[str] = field(default_factory=list)
+    pending_question: str | None = None
 
     def add_message(self, role: str, content: str) -> None:
         self.messages.append(SessionMessage(role=role, content=content))
 
+    def recent_complete_turns(self, limit: int) -> list[SessionMessage]:
+        turns: list[tuple[SessionMessage, SessionMessage]] = []
+        pending_user: SessionMessage | None = None
+        for message in self.messages:
+            if message.role == "user":
+                pending_user = message
+                continue
+            if message.role == "assistant" and pending_user is not None:
+                turns.append((pending_user, message))
+                pending_user = None
+        return [message for turn in turns[-limit:] for message in turn]
+
     def set_pending(self, drug_ids: list[str]) -> None:
         self.pending_drug_ids = drug_ids
+
+    def set_pending_question(self, question: str) -> None:
+        self.pending_question = question
 
     def confirm_drug(self, drug_id: str, drug_name: str) -> None:
         self.confirmed_drug_id = drug_id
@@ -38,6 +54,10 @@ class SessionState:
             for pending_id in self.pending_drug_ids
             if pending_id != drug_id
         ]
+
+    def complete_answer(self, answer: str) -> None:
+        self.add_message("assistant", answer)
+        self.pending_question = None
 
 
 class InMemorySessionStore:

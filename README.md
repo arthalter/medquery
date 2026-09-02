@@ -29,3 +29,7 @@ docker compose run --rm app python -m medquery ingest
 该命令严格从 `data/processed/drugs.json` 读取药品注册表，依次完成 TXT 解析、400 字符完整句子切片、`text-embedding-v4` Dense Embedding 和 Milvus Lite FLAT 写入。正常应用启动只加载已经存在的向量库，不重复入库。
 
 在线检索能力由 `InstructionRetrievalService.search()` 提供：仅以确认后的 `drug_name` 过滤，执行 Dense Top 10，再交给 `qwen3-rerank` 返回 Top 3。`DrugInstructionSearchTool` 是后续 Agent 使用的唯一知识库 Tool 接口。
+
+## 在线问答
+
+用户确认药品后，后端先通过独立 Grok 调用把当前问题改写成原子问题，再由 LangChain `create_agent` 自主串行调用唯一说明书检索 Tool。最终 Grok 响应作为答案，所有 Tool 实际返回的原文通过 SSE 交给页面展示；重复证据保持原样。

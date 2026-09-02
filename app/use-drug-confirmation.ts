@@ -13,6 +13,9 @@ export type DrugCandidate = {
 type StreamPayload = {
   session_id?: string;
   message?: string;
+  question?: string;
+  delta?: string;
+  evidence?: string[];
   candidates?: DrugCandidate[];
   drug?: DrugCandidate | null;
 };
@@ -23,15 +26,23 @@ export function useDrugConfirmation() {
   const [confirmedDrug, setConfirmedDrug] = useState<DrugCandidate>();
   const [clarification, setClarification] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [pendingQuestion, setPendingQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [evidence, setEvidence] = useState<string[]>([]);
 
-  async function submitQuestion(message: string) {
+  async function submitQuestion(message: string, resume = false) {
     if (!message || isSending) return;
     setIsSending(true);
     setClarification('');
+    if (!resume) {
+      setPendingQuestion(message);
+      setAnswer('');
+      setEvidence([]);
+    }
     const response = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, session_id: sessionId }),
+      body: JSON.stringify({ message, session_id: sessionId, resume }),
     });
     await consumeSse(response, handleStreamEvent);
     setIsSending(false);
@@ -52,6 +63,12 @@ export function useDrugConfirmation() {
       setConfirmedDrug(payload.drug);
       setCandidates([]);
     }
+    if (event === 'answer_delta' && payload.delta) {
+      setAnswer((current) => current + payload.delta);
+    }
+    if (event === 'evidence') {
+      setEvidence(payload.evidence ?? []);
+    }
   }
 
   async function decideCandidate(candidate: DrugCandidate, accepted: boolean) {
@@ -71,6 +88,7 @@ export function useDrugConfirmation() {
       setConfirmedDrug(payload.drug);
       setCandidates([]);
       setClarification('');
+      await submitQuestion(payload.question ?? pendingQuestion, true);
       return;
     }
     setCandidates(payload.candidates ?? []);
@@ -78,10 +96,12 @@ export function useDrugConfirmation() {
   }
 
   return {
+    answer,
     candidates,
     clarification,
     confirmedDrug,
     decideCandidate,
+    evidence,
     isSending,
     submitQuestion,
   };
