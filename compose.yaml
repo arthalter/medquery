@@ -5,6 +5,10 @@ services:
       target: runtime
     env_file:
       - .env
+    environment:
+      HTTP_PROXY: "${CONTAINER_HTTP_PROXY:-}"
+      HTTPS_PROXY: "${CONTAINER_HTTPS_PROXY:-}"
+      NO_PROXY: "${CONTAINER_NO_PROXY:-localhost,127.0.0.1}"
     ports:
       - "${APP_PORT:-8000}:${APP_PORT:-8000}"
     volumes:
