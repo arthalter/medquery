@@ -113,6 +113,7 @@ export default function Home() {
         <DrugCandidatePanel
           candidates={drugConfirmation.candidates}
           clarification={drugConfirmation.clarification}
+          disabled={drugConfirmation.isSending}
           onDecision={drugConfirmation.decideCandidate}
         />
         <AnswerResult

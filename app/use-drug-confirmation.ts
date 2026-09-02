@@ -65,7 +65,7 @@ export function useDrugConfirmation() {
   }, []);
 
   async function submitQuestion(message: string, resume = false) {
-    if (!message || isSending) return;
+    if (!message || (isSending && !resume)) return;
     setIsSending(true);
     setClarification('');
     if (!resume) {
@@ -107,7 +107,8 @@ export function useDrugConfirmation() {
   }
 
   async function decideCandidate(candidate: DrugCandidate, accepted: boolean) {
-    if (!sessionId) return;
+    if (!sessionId || isSending) return;
+    setIsSending(true);
     const response = await fetch(
       `/api/sessions/${sessionId}/drug-confirmation`,
       {
@@ -128,6 +129,7 @@ export function useDrugConfirmation() {
     }
     setCandidates(payload.candidates ?? []);
     setClarification(payload.message ?? '请补充药品名称。');
+    setIsSending(false);
   }
 
   return {

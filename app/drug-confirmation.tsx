@@ -20,10 +20,12 @@ export function ConfirmedDrugBadge({ drug }: { drug?: DrugCandidate }) {
 export function DrugCandidatePanel({
   candidates,
   clarification,
+  disabled,
   onDecision,
 }: {
   candidates: DrugCandidate[];
   clarification: string;
+  disabled: boolean;
   onDecision: (candidate: DrugCandidate, accepted: boolean) => void;
 }) {
   if (!candidates.length) {
@@ -53,6 +55,7 @@ export function DrugCandidatePanel({
                 variant="ghost"
                 size="icon-sm"
                 aria-label={`排除${candidate.drug_name}`}
+                disabled={disabled}
                 onClick={() => onDecision(candidate, false)}
               >
                 <X />
@@ -60,6 +63,7 @@ export function DrugCandidatePanel({
               <Button
                 type="button"
                 className="confirm-button"
+                disabled={disabled}
                 onClick={() => onDecision(candidate, true)}
               >
                 确认
