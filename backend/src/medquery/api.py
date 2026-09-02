@@ -118,24 +118,34 @@ def create_api_router(
             if chat_request.session_id
             else None
         )
-        if chat_request.session_id and state is None:
-            raise HTTPException(status_code=404, detail="会话不存在")
+        resume = chat_request.resume and state is not None
         if state is None:
             state = sessions.create()
 
         current_question = (
             state.pending_question
-            if chat_request.resume and state.pending_question
+            if resume and state.pending_question
             else chat_request.message
         )
-        if not chat_request.resume:
-            state.begin_question(current_question)
+        if not resume:
+            continuing_confirmation = (
+                state.pending_question is not None
+                and (
+                    state.confirmed_drug_id is None
+                    or state.switch_pending
+                    or bool(state.pending_drug_ids)
+                )
+            )
+            if continuing_confirmation:
+                state.continue_question(current_question)
+            else:
+                state.begin_question(current_question)
 
         async def events() -> AsyncIterator[str]:
             yield _sse("session", {"session_id": state.session_id})
             if state.confirmed_drug_id:
                 drug = registry.get(state.confirmed_drug_id)
-                if not chat_request.resume:
+                if not resume:
                     detected = await recognizer.recognize(
                         state,
                         current_question,
@@ -144,10 +154,13 @@ def create_api_router(
                     switch_candidates = [
                         candidate
                         for candidate in detected
-                        if candidate.drug_id != state.confirmed_drug_id
+                        if (
+                            state.switch_pending
+                            or candidate.drug_id != state.confirmed_drug_id
+                        )
                     ]
                     if switch_candidates:
-                        state.clear_confirmed_drug()
+                        state.begin_drug_switch()
                         state.set_pending(
                             [candidate.drug_id for candidate in switch_candidates]
                         )
@@ -160,6 +173,15 @@ def create_api_router(
                                     for candidate in switch_candidates
                                 ]
                             },
+                        )
+                        return
+                    if state.switch_pending:
+                        state.add_message(
+                            "assistant", "请补充要切换到的药品名称。"
+                        )
+                        yield _sse(
+                            "drug_clarification_required",
+                            {"message": "请补充要切换到的药品名称。"},
                         )
                         return
                 yield _sse(

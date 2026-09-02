@@ -136,7 +136,7 @@ class BailianClient:
             raise RuntimeError("百炼 Rerank 响应缺少 results")
 
         results: list[RerankResult] = []
-        for item in raw_results:
+        for item in raw_results[: self._settings.rerank_top_k]:
             if not isinstance(item, dict):
                 raise RuntimeError("百炼 Rerank 响应包含无效条目")
             index = item.get("index")

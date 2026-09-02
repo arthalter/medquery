@@ -29,12 +29,6 @@ class QuestionRewriter:
         history_rounds: int,
     ) -> RewriteResult:
         recent_messages = state.recent_complete_turns(history_rounds)
-        if (
-            len(recent_messages) >= 2
-            and recent_messages[-2].role == "user"
-            and recent_messages[-2].content == current_question
-        ):
-            recent_messages = recent_messages[:-2]
         payload = {
             "confirmed_drug_name": confirmed_drug_name,
             "conversation": [

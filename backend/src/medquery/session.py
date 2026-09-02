@@ -24,6 +24,7 @@ class SessionState:
     confirmed_drug_name: str | None = None
     pending_drug_ids: list[str] = field(default_factory=list)
     rejected_drug_ids: list[str] = field(default_factory=list)
+    switch_pending: bool = False
     pending_question: str | None = None
     turns: list[ConversationTurn] = field(default_factory=list)
 
@@ -41,6 +42,9 @@ class SessionState:
         self.pending_question = question
         self.add_message("user", question)
 
+    def continue_question(self, clarification: str) -> None:
+        self.add_message("user", clarification)
+
     def set_pending(self, drug_ids: list[str]) -> None:
         self.pending_drug_ids = drug_ids
 
@@ -49,6 +53,10 @@ class SessionState:
         self.confirmed_drug_name = drug_name
         self.pending_drug_ids = []
         self.rejected_drug_ids = []
+        self.switch_pending = False
+
+    def begin_drug_switch(self) -> None:
+        self.switch_pending = True
 
     def clear_confirmed_drug(self) -> None:
         self.confirmed_drug_id = None
@@ -74,6 +82,7 @@ class SessionState:
             )
         self.add_message("assistant", answer)
         self.pending_question = None
+        self.switch_pending = False
 
 
 class InMemorySessionStore:

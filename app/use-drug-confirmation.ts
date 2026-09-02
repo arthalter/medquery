@@ -43,13 +43,24 @@ export function useDrugConfirmation() {
   const [answer, setAnswer] = useState('');
   const [evidence, setEvidence] = useState<string[]>([]);
 
+  function resetSession() {
+    setSessionId(undefined);
+    setCandidates([]);
+    setConfirmedDrug(undefined);
+    setClarification('');
+    setPendingQuestion('');
+    setAnswer('');
+    setEvidence([]);
+    window.localStorage.removeItem(SESSION_KEY);
+  }
+
   useEffect(() => {
     const storedSessionId = window.localStorage.getItem(SESSION_KEY);
     if (!storedSessionId) return;
 
     fetch(`/api/sessions/${storedSessionId}`).then(async (response) => {
       if (!response.ok) {
-        window.localStorage.removeItem(SESSION_KEY);
+        resetSession();
         return;
       }
       const snapshot = (await response.json()) as SessionSnapshot;
@@ -73,13 +84,19 @@ export function useDrugConfirmation() {
       setAnswer('');
       setEvidence([]);
     }
-    const response = await fetch('/api/chat/stream', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, session_id: sessionId, resume }),
-    });
-    await consumeSse(response, handleStreamEvent);
-    setIsSending(false);
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, session_id: sessionId, resume }),
+      });
+      if (!response.ok) {
+        throw new Error(`聊天请求失败：${response.status}`);
+      }
+      await consumeSse(response, handleStreamEvent);
+    } finally {
+      setIsSending(false);
+    }
   }
 
   function handleStreamEvent(event: string, payload: StreamPayload) {
@@ -109,27 +126,37 @@ export function useDrugConfirmation() {
   async function decideCandidate(candidate: DrugCandidate, accepted: boolean) {
     if (!sessionId || isSending) return;
     setIsSending(true);
-    const response = await fetch(
-      `/api/sessions/${sessionId}/drug-confirmation`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ drug_id: candidate.drug_id, accepted }),
-      },
-    );
-    const payload = (await response.json()) as StreamPayload & {
-      status: string;
-    };
-    if (payload.status === 'confirmed' && payload.drug) {
-      setConfirmedDrug(payload.drug);
-      setCandidates([]);
-      setClarification('');
-      await submitQuestion(payload.question ?? pendingQuestion, true);
-      return;
+    try {
+      const response = await fetch(
+        `/api/sessions/${sessionId}/drug-confirmation`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ drug_id: candidate.drug_id, accepted }),
+        },
+      );
+      if (response.status === 404) {
+        resetSession();
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(`药品确认失败：${response.status}`);
+      }
+      const payload = (await response.json()) as StreamPayload & {
+        status: string;
+      };
+      if (payload.status === 'confirmed' && payload.drug) {
+        setConfirmedDrug(payload.drug);
+        setCandidates([]);
+        setClarification('');
+        await submitQuestion(payload.question ?? pendingQuestion, true);
+        return;
+      }
+      setCandidates(payload.candidates ?? []);
+      setClarification(payload.message ?? '请补充药品名称。');
+    } finally {
+      setIsSending(false);
     }
-    setCandidates(payload.candidates ?? []);
-    setClarification(payload.message ?? '请补充药品名称。');
-    setIsSending(false);
   }
 
   return {
