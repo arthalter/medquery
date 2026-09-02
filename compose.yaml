@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    env_file:
+      - .env
+    ports:
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
+    volumes:
+      - medquery_milvus:/data/milvus
+      - ./data:/app/data:ro
+
+volumes:
+  medquery_milvus:
