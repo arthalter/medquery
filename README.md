@@ -20,4 +20,12 @@ docker compose up --build
 docker compose run --rm app python -m medquery init-db
 ```
 
-后续 Ticket 会在该离线入口上加入说明书入库能力，并把 SSE 骨架接入真实问答链路。
+采集完成且百炼配置已填入 `.env` 后，使用同一镜像执行一次完整入库：
+
+```bash
+docker compose run --rm app python -m medquery ingest
+```
+
+该命令严格从 `data/processed/drugs.json` 读取药品注册表，依次完成 TXT 解析、400 字符完整句子切片、`text-embedding-v4` Dense Embedding 和 Milvus Lite FLAT 写入。正常应用启动只加载已经存在的向量库，不重复入库。
+
+在线检索能力由 `InstructionRetrievalService.search()` 提供：仅以确认后的 `drug_name` 过滤，执行 Dense Top 10，再交给 `qwen3-rerank` 返回 Top 3。`DrugInstructionSearchTool` 是后续 Agent 使用的唯一知识库 Tool 接口。
