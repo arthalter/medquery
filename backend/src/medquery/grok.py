@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from asyncio import to_thread
 from typing import Any
-from urllib.request import Request, urlopen
 import json
+
+import httpx
 
 from medquery.config import Settings
 
@@ -40,16 +41,13 @@ class GrokChatClient:
                 },
             ],
         }
-        request = Request(
-            f"{self._base_url}/chat/completions",
-            data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {self._api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        with urlopen(request) as response:
-            response_payload = json.loads(response.read().decode("utf-8"))
+        with httpx.Client(timeout=None) as client:
+            response = client.post(
+                f"{self._base_url}/chat/completions",
+                json=request_body,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+            )
+            response.raise_for_status()
+            response_payload = response.json()
         content = response_payload["choices"][0]["message"]["content"]
         return json.loads(content)
