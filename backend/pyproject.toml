@@ -9,6 +9,7 @@ description = "智药问点本地演示后端"
 requires-python = ">=3.13,<3.14"
 dependencies = [
   "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
   "pydantic-settings>=2.8,<3",
   "pymilvus[milvus-lite]>=2.6,<3",
   "uvicorn[standard]>=0.34,<1",
